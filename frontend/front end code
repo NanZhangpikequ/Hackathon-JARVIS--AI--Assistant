@@ -1,0 +1,78 @@
+// ... existing code ...
+@app.route('/camera', methods=['POST'])
+def process_camera():
+    """Process camera input"""
+    try:
+        # For now, just acknowledge the camera is active
+        return jsonify({
+            'success': True,
+            'message': 'Camera is active'
+        })
+    except Exception as e:
+        print(f"Error processing camera input: {str(e)}")
+        return jsonify({'error': 'Failed to process camera input'}), 500
+
+// ... existing code ...
+// ... existing code ...
+        <div class="flex items-center justify-center space-x-4">
+            <button id="micButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                </svg>
+                <span>Hold to Speak</span>
+            </button>
+
+            <button id="cameraButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Camera</span>
+            </button>
+            
+            <div class="flex-1 max-w-2xl">
+                <input type="text" id="textInput" class="w-full bg-gray-700 text-white rounded-l px-4 py-3 focus:outline-none" placeholder="Type your message...">
+            </div>
+// ... existing code ...
+
+        // Camera handling
+        const cameraButton = document.getElementById('cameraButton');
+        let videoStream = null;
+        let videoElement = null;
+
+        cameraButton.addEventListener('click', async () => {
+            try {
+                if (!videoElement) {
+                    // Create video element if it doesn't exist
+                    videoElement = document.createElement('video');
+                    videoElement.className = 'fixed top-0 left-0 w-full h-full object-cover z-50';
+                    videoElement.autoplay = true;
+                    document.body.appendChild(videoElement);
+
+                    // Add close button
+                    const closeButton = document.createElement('button');
+                    closeButton.className = 'fixed top-4 right-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full z-50';
+                    closeButton.innerHTML = '✕';
+                    closeButton.onclick = () => {
+                        if (videoStream) {
+                            videoStream.getTracks().forEach(track => track.stop());
+                        }
+                        videoElement.remove();
+                        closeButton.remove();
+                        videoElement = null;
+                        videoStream = null;
+                    };
+                    document.body.appendChild(closeButton);
+                }
+
+                if (!videoStream) {
+                    // Start camera
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    videoElement.srcObject = videoStream;
+                    status.textContent = 'Camera active';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = 'Error accessing camera';
+            }
+        });
