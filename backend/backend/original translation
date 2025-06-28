@@ -1,0 +1,95 @@
+import speech_recognition as sr  # importing the speech recognition package
+import pyttsx3
+import requests
+import os
+from dotenv import load_dotenv
+import unittest
+from unittest.mock import patch, MagicMock
+
+load_dotenv()
+OPENAI_KEY = ""
+
+import openai
+from openai import OpenAI
+
+
+openai.api_key = OPENAI_KEY
+client = OpenAI(
+    api_key="")
+engine = pyttsx3.init()
+
+def speak_text(command):
+    engine.say(command)
+    engine.runAndWait()
+def record_text():
+    r = sr.Recognizer()
+    while (True):
+        try:
+            with sr.Microphone() as source:
+                r.adjust_for_ambient_noise(source, duration=0.2)
+                print("I'm listening...")
+                audio = r.listen(source)
+                text = r.recognize_google(audio)
+                return text
+        except sr.RequestError as e:
+            print(f"Could not request results; {e}. Please check your internet connection.")
+        except sr.UnknownValueError:
+            print("Sorry, I didn't catch that. Please try again.")
+def send_to_chatgpt(messages, model="gpt-3.5-turbo"):
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        n=1,
+        stop=None,
+        temperature=0.5,
+    )
+    message = response.choices[0].message.content
+    messages.append(response.choices[0].message)
+    return message
+def detect_language(text, api_key):
+    url = "https://api.deepl.com/v2/translate"
+    params = {
+        'auth_key': api_key,
+        'text': text,
+        'target_lang': 'EN'  # Translate to English to get the detected source language
+    }
+    response = requests.post(url, data=params)
+    if response.status_code == 200:
+        result = response.json()
+        return result['translations'][0]['detected_source_language']
+    else:
+        raise Exception(f"Language detection failed with status code {response.status_code}" 
+def translate_text(text, target_language, source_language, key):
+    url = "https://api.deepl.com/v2/translate"
+    api_key = key
+    params = {
+        'auth_key': api_key,
+        'text': text,
+        'target_lang': target_language,
+        'source_lang': source_language
+    }
+    response = requests.post(url, data=params)
+    if response.status_code == 200:
+        result = response.json()
+        return result['translations'][0]['text']
+    else:
+        raise Exception(f"Translation failed with status code {response.status_code}")
+
+
+
+def main():
+    messages = [{"role": "user", "content": "Please act like Eddie from Lab Rats."}]
+    tranlation_key = "BTM7HVUebu6Ss3JBs"
+    while True:
+        text = record_text()
+        original_language = detect_language(text, tranlation_key)
+        english = "EN"
+        translated_text = translate_text(text, english, original_language, tranlation_key)
+        if translated_text.lower() in ["exit", "quit", "stop"]:
+            print("Exiting the program.")
+            break
+        messages.append({"role": "user", "content": translated_text})
+        response = send_to_chatgpt(messages)
+        translated_response = translate_text(response, original_language, englisha, tranlation_key)
+        speak_text(translated_response)
+        print(translated_response)
